@@ -141,6 +141,14 @@ export default function App() {
 
       tg.ready();
       tg.expand();
+      
+      // Theme Integration: Blue Professional Theme
+      try {
+        tg.setHeaderColor('#2563EB');
+        tg.setBackgroundColor('#0D121F');
+      } catch (e) {
+        console.error("Theme set error", e);
+      }
 
       if (!tg.initDataUnsafe?.user) {
         setLoading(false);
@@ -196,8 +204,9 @@ export default function App() {
             // NEW USER REGISTRATION
             try {
               let inviterIdStr = null;
-              if (inviterIdFromParam && parseInt(inviterIdFromParam) !== user.id) {
+              if (inviterIdFromParam && String(inviterIdFromParam) !== String(user.id)) {
                 try {
+                  console.log("Processing Referral for inviter:", inviterIdFromParam);
                   const inviterRef = collection(db, "users");
                   const q = query(inviterRef, where("telegramId", "==", parseInt(inviterIdFromParam)), limit(1));
                   const querySnapshot = await getDocs(q);
@@ -206,6 +215,8 @@ export default function App() {
                     const inviterDoc = querySnapshot.docs[0];
                     inviterIdStr = inviterDoc.id;
                     
+                    console.log("Found inviter doc:", inviterIdStr);
+
                     // Reward inviter (50 pts)
                     await updateDoc(doc(db, "users", inviterDoc.id), {
                       balance: increment(50),
@@ -215,18 +226,20 @@ export default function App() {
                       updatedAt: serverTimestamp()
                     });
 
-                    // Track in sub-collection
+                    // Track in sub-collection for real-time join feed if needed later
                     await setDoc(doc(db, `users/${inviterDoc.id}/referrals/${user.id}`), {
                       telegramId: user.id,
                       username: identity.username,
                       joinedAt: serverTimestamp()
                     });
                     
-                    tg.showAlert(`Welcome to @Madbottherbot! You were successfully referred and can now start earning.`);
+                    tg.showAlert(`Welcome! You were referred. Referral rewards applied to your friend!`);
                     tg.HapticFeedback?.notificationOccurred('success');
+                  } else {
+                    console.warn("Inviter NOT found in database for ID:", inviterIdFromParam);
                   }
                 } catch (refErr) {
-                  console.error("Referral Error:", refErr);
+                  console.error("Referral Logic Failure:", refErr);
                 }
               }
               
@@ -559,7 +572,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0D121F] p-10 text-center">
-        <Loader2 className="w-12 h-12 animate-spin text-[#10B981] mb-6" />
+        <Loader2 className="w-12 h-12 animate-spin text-[#2563EB] mb-6" />
         <h2 className="text-xl font-black text-white mb-2">Loading @Madbot...</h2>
         <p className="text-sm text-[#A0AEC0]">Securing connection to rewards gateway</p>
       </div>
@@ -595,11 +608,11 @@ export default function App() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#0D121F] p-8 text-center">
-        <div className="w-20 h-20 rounded-full bg-[#10B981]/10 flex items-center justify-center mb-6">
-          <Bell className="w-10 h-10 text-[#10B981]" />
+        <div className="w-20 h-20 rounded-full bg-[#2563EB]/10 flex items-center justify-center mb-6">
+          <Bell className="w-10 h-10 text-[#2563EB]" />
         </div>
         <h2 className="text-2xl font-black text-white mb-4">Connection Failed</h2>
-        <p className="text-[#10B981] text-sm mb-10 leading-relaxed bg-[#10B981]/5 p-4 rounded-xl border border-[#10B981]/10">
+        <p className="text-[#2563EB] text-sm mb-10 leading-relaxed bg-[#2563EB]/5 p-4 rounded-xl border border-[#2563EB]/10">
           {error}
         </p>
         <button 
@@ -613,7 +626,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen pb-28 bg-[#0D121F] font-sans selection:bg-[#10B981]/30 overflow-x-hidden">
+    <div className="min-h-screen pb-28 bg-[#0D121F] font-sans selection:bg-[#2563EB]/30 overflow-x-hidden">
       {/* Header Section */}
       <header className="px-6 pt-6 pb-4 flex items-center justify-between">
         <div>
@@ -624,7 +637,7 @@ export default function App() {
             {activeTab === 'home' ? "Let's earn some points today!" : activeTab === 'tasks' ? "Complete tasks to earn more" : activeTab === 'wallet' ? "Cash out your earnings" : "Refer friends to get paid"}
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#10B981] to-[#059669] flex items-center justify-center border border-white/10 shadow-lg shadow-[#10B981]/10 p-0.5">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#2563EB] to-[#1E40AF] flex items-center justify-center border border-white/10 shadow-lg shadow-[#2563EB]/10 p-0.5">
           <div className="w-full h-full rounded-full bg-[#0D121F] flex items-center justify-center">
              <UserIcon className="w-5 h-5 text-white" />
           </div>
@@ -638,7 +651,7 @@ export default function App() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="gradient-card rounded-[24px] p-6 text-white shadow-xl shadow-[#10B981]/10"
+              className="gradient-card rounded-[24px] p-6 text-white shadow-xl shadow-[#2563EB]/10"
             >
               <div className="relative z-10">
                 <p className="text-sm font-medium opacity-80 uppercase tracking-widest">Current Balance</p>
@@ -668,7 +681,7 @@ export default function App() {
               whileTap={{ scale: 0.98 }}
               onClick={handleWatchAd}
               disabled={isWatching}
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#10B981] to-[#059669] flex items-center justify-center gap-3 text-white font-bold shadow-lg shadow-[#10B981]/20 disabled:opacity-70 disabled:cursor-not-allowed group transition-all"
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#2563EB] to-[#1E40AF] flex items-center justify-center gap-3 text-white font-bold shadow-lg shadow-[#2563EB]/20 disabled:opacity-70 disabled:cursor-not-allowed group transition-all"
             >
               {isWatching ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -680,14 +693,14 @@ export default function App() {
 
             {/* Daily Rewards Sneak Peek */}
             <section className="stats-card rounded-2xl p-4 flex items-center gap-4 cursor-pointer" onClick={() => setActiveTab('tasks')}>
-              <div className="w-12 h-12 rounded-xl bg-[#10B981]/10 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-[#10B981]" />
+              <div className="w-12 h-12 rounded-xl bg-[#2563EB]/10 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-[#2563EB]" />
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-sm">Daily Reward</h4>
                 <p className="text-xs text-[#A0AEC0]">Current Streak: {profile?.dailyStreak || 0} Days</p>
               </div>
-              <div className="px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[10px] font-bold border border-[#10B981]/20 uppercase">
+              <div className="px-3 py-1 rounded-full bg-[#2563EB]/10 text-[#2563EB] text-[10px] font-bold border border-[#2563EB]/20 uppercase">
                  View Tasks
               </div>
             </section>
@@ -702,10 +715,10 @@ export default function App() {
                     <p className="text-xs text-[#A0AEC0]">Claim your daily reward</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-[#10B981]">{profile?.dailyStreak}/7 Days</p>
+                    <p className="text-xs font-bold text-[#2563EB]">{profile?.dailyStreak}/7 Days</p>
                     <div className="w-20 h-1.5 bg-white/10 rounded-full mt-1 overflow-hidden">
                        <div 
-                        className="h-full bg-[#10B981]" 
+                        className="h-full bg-[#2563EB]" 
                         style={{ width: `${((profile?.dailyStreak || 0) / 7) * 100}%` }}
                        />
                     </div>
@@ -721,13 +734,13 @@ export default function App() {
                    return (
                      <div key={day} className="flex flex-col items-center gap-2">
                         <div className={`w-full aspect-square rounded-xl flex items-center justify-center text-[10px] font-bold border transition-all
-                          ${isCompleted ? 'bg-[#10B981] border-[#10B981] text-white' : 
-                            isCurrent ? 'bg-white/5 border-[#10B981] text-[#10B981] shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 
+                          ${isCompleted ? 'bg-[#2563EB] border-[#2563EB] text-white' : 
+                            isCurrent ? 'bg-white/5 border-[#2563EB] text-[#2563EB] shadow-[0_0_10px_rgba(37,99,235,0.2)]' : 
                             'bg-white/5 border-white/10 text-[#A0AEC0]'}`}
                         >
                           {isCompleted ? <Check className="w-4 h-4" /> : `Day ${day}`}
                         </div>
-                        <span className={`text-[8px] font-bold ${isCurrent ? 'text-[#10B981]' : 'text-[#A0AEC0]'}`}>
+                        <span className={`text-[8px] font-bold ${isCurrent ? 'text-[#2563EB]' : 'text-[#A0AEC0]'}`}>
                           {DAILY_REWARDS[i]} pts
                         </span>
                      </div>
@@ -739,7 +752,7 @@ export default function App() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleDailyCheckIn}
                 disabled={isClaimingDaily}
-                className="w-full py-3 rounded-xl bg-[#10B981] text-white text-sm font-bold shadow-lg shadow-[#10B981]/20 disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-[#2563EB] text-white text-sm font-bold shadow-lg shadow-[#2563EB]/20 disabled:opacity-50"
                >
                  {isClaimingDaily ? 'Claiming...' : 'Claim Today\'s Reward'}
                </motion.button>
@@ -770,7 +783,7 @@ export default function App() {
                         href="https://t.me/ebisa_emoji" 
                         target="_blank" 
                         rel="noreferrer"
-                        className="px-4 py-1.5 rounded-lg bg-[#10B981]/20 text-[#10B981] text-[10px] font-bold border border-[#10B981]/20 text-center flex items-center gap-1"
+                        className="px-4 py-1.5 rounded-lg bg-[#2563EB]/20 text-[#2563EB] text-[10px] font-bold border border-[#2563EB]/20 text-center flex items-center gap-1"
                       >
                          Join <ExternalLink size={10} />
                       </a>
@@ -806,7 +819,7 @@ export default function App() {
                     <p className="text-[10px] opacity-40 uppercase font-medium">For next withdrawal</p>
                   </div>
                 </div>
-                <span className={`text-xs font-black ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? 'text-green-400' : 'text-[#10B981]'}`}>
+                <span className={`text-xs font-black ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? 'text-green-400' : 'text-[#2563EB]'}`}>
                   {Math.max(0, (profile?.total_invites || 0) - (profile?.consumedInvites || 0))}/2
                 </span>
               </div>
@@ -845,7 +858,7 @@ export default function App() {
                 {withdrawalMethod && (
                   <div className="flex items-center gap-2">
                     <span className="text-[8px] font-bold text-white/40 uppercase">Selected:</span>
-                    <span className="text-[8px] font-black text-[#10B981] uppercase">{withdrawalMethod.replace('_', ' ')}</span>
+                    <span className="text-[8px] font-black text-[#2563EB] uppercase">{withdrawalMethod.replace('_', ' ')}</span>
                   </div>
                 )}
               </div>
@@ -859,7 +872,7 @@ export default function App() {
                   <button 
                     key={m.id}
                     onClick={() => setWithdrawalMethod(m.id)}
-                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${withdrawalMethod === m.id ? 'bg-[#10B981]/10 border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-white/5 border-white/5'}`}
+                    className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${withdrawalMethod === m.id ? 'bg-[#2563EB]/10 border-[#2563EB] shadow-[0_0_15px_rgba(37,99,235,0.2)]' : 'bg-white/5 border-white/5'}`}
                   >
                     <img src={m.img} alt={m.label} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
                     <span className="text-[8px] font-black uppercase text-center leading-tight whitespace-pre-wrap">{m.label}</span>
@@ -878,7 +891,7 @@ export default function App() {
                     value={withdrawalAmount}
                     onChange={(e) => setWithdrawalAmount(e.target.value)}
                     placeholder="E.g. 100"
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#10B981]/50 transition-all"
+                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#2563EB]/50 transition-all"
                   />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#A0AEC0]">PTS</div>
                 </div>
@@ -892,7 +905,7 @@ export default function App() {
                     value={withdrawalAddress}
                     onChange={(e) => setWithdrawalAddress(e.target.value)}
                     placeholder="Enter your wallet address"
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#10B981]/50 transition-all font-mono"
+                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#2563EB]/50 transition-all font-mono"
                   />
                 </div>
               ) : (
@@ -903,7 +916,7 @@ export default function App() {
                     value={withdrawalUid}
                     onChange={(e) => setWithdrawalUid(e.target.value)}
                     placeholder="Enter your Exchange UID"
-                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#10B981]/50 transition-all font-mono"
+                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#2563EB]/50 transition-all font-mono"
                   />
                 </div>
               )}
@@ -915,7 +928,7 @@ export default function App() {
               disabled={isWithdrawing || !profile || profile.balance < 30}
               className={`w-full h-16 rounded-2xl font-black text-white shadow-lg transition-all flex items-center justify-center gap-3
                 ${(((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 && (profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25)) 
-                  ? 'bg-gradient-to-r from-[#10B981] to-[#064E3B] shadow-[#10B981]/20' 
+                  ? 'bg-gradient-to-r from-[#2563EB] to-[#1E3A8A] shadow-[#2563EB]/20' 
                   : 'bg-white/10 border border-white/5 text-white/20'}`}
             >
               {isWithdrawing ? (
@@ -940,7 +953,7 @@ export default function App() {
             {/* History Section */}
             <div className="mt-12 space-y-4">
                <div className="flex items-center gap-2 px-2">
-                 <Clock size={16} className="text-[#10B981]" />
+                 <Clock size={16} className="text-[#2563EB]" />
                  <h3 className="text-lg font-black text-white uppercase tracking-tight">Withdrawal History</h3>
                </div>
 
@@ -995,12 +1008,12 @@ export default function App() {
             <div className="bg-white/5 rounded-[32px] p-8 border border-white/10 relative overflow-hidden">
               <div className="relative z-10">
                 <div className="flex items-center gap-6 mb-10">
-                  <div className="w-20 h-20 rounded-[24px] bg-gradient-to-tr from-[#10B981] to-[#064E3B] flex items-center justify-center text-3xl font-black text-white shadow-xl shadow-[#10B981]/20">
+                  <div className="w-20 h-20 rounded-[24px] bg-gradient-to-tr from-[#2563EB] to-[#1E3A8A] flex items-center justify-center text-3xl font-black text-white shadow-xl shadow-[#2563EB]/20">
                     {userData?.username?.[0]?.toUpperCase() || 'U'}
                   </div>
                   <div>
                     <h3 className="text-2xl font-black text-white">{userData?.username || 'User'}</h3>
-                    <p className="text-xs text-[#10B981] font-bold mt-1 tracking-wider uppercase">Active Member</p>
+                    <p className="text-xs text-[#2563EB] font-bold mt-1 tracking-wider uppercase">Active Member</p>
                   </div>
                 </div>
                 
@@ -1019,7 +1032,7 @@ export default function App() {
                   </div>
                   <div className="bg-black/30 p-4 rounded-2xl border border-white/5">
                     <p className="text-[10px] font-black opacity-40 uppercase tracking-widest text-[#A0AEC0]">Current Ads</p>
-                    <p className="text-xl font-black text-[#10B981] mt-1">{profile?.adsSinceLastWithdrawal || 0}</p>
+                    <p className="text-xl font-black text-[#2563EB] mt-1">{profile?.adsSinceLastWithdrawal || 0}</p>
                   </div>
                 </div>
 
@@ -1031,13 +1044,13 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="absolute -right-20 -top-20 w-48 h-48 bg-[#10B981]/10 rounded-full blur-3xl" />
+              <div className="absolute -right-20 -top-20 w-48 h-48 bg-[#2563EB]/10 rounded-full blur-3xl" />
             </div>
 
             {/* FAQ Section */}
             <div className="stats-card rounded-[32px] p-6 space-y-4">
               <h4 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
-                <Bell size={18} className="text-[#10B981]" />
+                <Bell size={18} className="text-[#2563EB]" />
                 Frequently Asked Questions
               </h4>
               
@@ -1080,7 +1093,7 @@ export default function App() {
                 rel="noreferrer"
                 className="w-full h-14 mt-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
               >
-                <ExternalLink size={18} className="text-[#10B981]" />
+                <ExternalLink size={18} className="text-[#2563EB]" />
                 NEED HELP? READ FAQ & CONTACT
               </motion.a>
             </div>
@@ -1116,14 +1129,14 @@ export default function App() {
                     </div>
                     <div className="bg-black/30 backdrop-blur-md rounded-2xl p-5 border border-white/5 shadow-inner">
                       <p className="text-[10px] uppercase font-black opacity-40 tracking-[0.2em]">Earnings</p>
-                      <p className="text-3xl font-black mt-2 text-[#10B981] leading-none">{Math.floor(profile?.referralEarnings || 0)} pts</p>
+                      <p className="text-3xl font-black mt-2 text-[#2563EB] leading-none">{Math.floor(profile?.referralEarnings || 0)} pts</p>
                     </div>
                   </div>
                </div>
 
                {/* Modern Decorative Blurs */}
-               <div className="absolute -right-16 -top-16 w-48 h-48 bg-[#10B981]/30 rounded-full blur-[60px]" />
-               <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-[#10B981]/30 rounded-full blur-[60px]" />
+               <div className="absolute -right-16 -top-16 w-48 h-48 bg-[#2563EB]/30 rounded-full blur-[60px]" />
+               <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-[#2563EB]/30 rounded-full blur-[60px]" />
             </motion.div>
 
             {/* Invite Actions Section */}
@@ -1132,17 +1145,17 @@ export default function App() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <label className="text-[10px] font-black text-[#A0AEC0] uppercase tracking-[0.15em]">Your Unique Link</label>
-                  <span className="text-[10px] text-[#10B981] font-bold">Earn 50 points per friend!</span>
+                  <span className="text-[10px] text-[#2563EB] font-bold">Earn 50 points per friend!</span>
                 </div>
                 <div className="relative group">
                   <input 
                     readOnly 
                     value={referralLink}
-                    className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 text-xs text-white pr-16 focus:outline-none focus:border-[#10B981]/50 transition-all font-mono"
+                    className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 text-xs text-white pr-16 focus:outline-none focus:border-[#2563EB]/50 transition-all font-mono"
                   />
                   <button 
                     onClick={handleCopyLink}
-                    className="absolute right-2.5 top-2.5 bottom-2.5 w-11 bg-[#10B981] rounded-xl flex items-center justify-center text-white active:scale-95 transition-all shadow-lg shadow-[#10B981]/20 hover:bg-[#059669]"
+                    className="absolute right-2.5 top-2.5 bottom-2.5 w-11 bg-[#2563EB] rounded-xl flex items-center justify-center text-white active:scale-95 transition-all shadow-lg shadow-[#2563EB]/20 hover:bg-[#1E40AF]"
                   >
                     <Copy size={18} />
                   </button>
@@ -1164,8 +1177,8 @@ export default function App() {
               {/* Trust/Tutorial Cards */}
               <div className="grid grid-cols-1 gap-4 text-left">
                 <div className="stats-card rounded-[24px] p-6 border border-white/5 flex gap-4 items-start">
-                   <div className="w-10 h-10 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
-                     <CheckCircle2 size={20} className="text-[#10B981]" />
+                   <div className="w-10 h-10 rounded-full bg-[#2563EB]/10 flex items-center justify-center shrink-0">
+                     <CheckCircle2 size={20} className="text-[#2563EB]" />
                    </div>
                    <div>
                      <h5 className="font-bold text-sm mb-1 text-white">Verified Tracking</h5>
@@ -1198,9 +1211,9 @@ function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, labe
   return (
     <button 
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 transition-all group relative ${active ? 'text-[#10B981]' : 'text-[#A0AEC0]'}`}
+      className={`flex flex-col items-center gap-1 transition-all group relative ${active ? 'text-[#2563EB]' : 'text-[#A0AEC0]'}`}
     >
-      <div className={`p-2 rounded-xl transition-all ${active ? 'bg-[#10B981]/10 scale-110 shadow-lg shadow-[#10B981]/10' : 'group-hover:bg-white/5'}`}>
+      <div className={`p-2 rounded-xl transition-all ${active ? 'bg-[#2563EB]/10 scale-110 shadow-lg shadow-[#2563EB]/10' : 'group-hover:bg-white/5'}`}>
         {React.cloneElement(icon as React.ReactElement, { size: 24, strokeWidth: active ? 2.5 : 2 })}
       </div>
       <span className={`text-[10px] font-bold uppercase tracking-widest ${active ? 'opacity-100' : 'opacity-40'}`}>
@@ -1209,7 +1222,7 @@ function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode, labe
       {active && (
         <motion.div 
           layoutId="nav-pill"
-          className="w-1.5 h-1.5 rounded-full bg-[#10B981] absolute -bottom-1"
+          className="w-1.5 h-1.5 rounded-full bg-[#2563EB] absolute -bottom-1"
         />
       )}
     </button>
