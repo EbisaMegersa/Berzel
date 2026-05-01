@@ -36,7 +36,7 @@
     },
     "Withdrawal": {
       "title": "Withdrawal Request",
-      "description": "A user's request to withdraw funds",
+      "description": "A user's request to withdraw points",
       "type": "object",
       "properties": {
         "amount": { "type": "number" },

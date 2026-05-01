@@ -54,7 +54,8 @@ interface WithdrawalHistory {
   createdAt: any;
 }
 
-const DAILY_REWARDS = [0.05, 0.1, 0.15, 0.25, 0.30, 0.4, 0.5]; // Rewards in $
+const DAILY_REWARDS = [8, 12, 23, 32, 42, 58, 83]; // Points
+const POINT_TO_USD = 0.006;
 
 // --- Error Handling ---
 enum OperationType {
@@ -219,12 +220,12 @@ export default function App() {
                     
                     console.log("Found inviter doc:", inviterDoc.id);
 
-                    // Reward inviter ($0.30)
+                    // Reward inviter (50 pts)
                     await updateDoc(doc(db, "users", inviterDoc.id), {
-                      balance: increment(0.3),
+                      balance: increment(50),
                       referralsCount: increment(1),
                       total_invites: increment(1),
-                      referralEarnings: increment(0.3),
+                      referralEarnings: increment(50),
                       updatedAt: serverTimestamp()
                     });
 
@@ -249,7 +250,7 @@ export default function App() {
                 telegramId: user.id,
                 username: identity.username,
                 adsWatched: 0,
-                balance: inviterIdStr ? 0.05 : 0, // $0.05 welcome bonus if referred
+                balance: inviterIdStr ? 10 : 0, // 10 pts welcome bonus if referred
                 dailyStreak: 0,
                 lastDailyClaim: null,
                 tasksCompleted: [],
@@ -318,7 +319,7 @@ export default function App() {
         await updateDoc(doc(db, userDocPath), {
           adsWatched: increment(1),
           adsSinceLastWithdrawal: increment(1),
-          balance: increment(0.01), // $0.01 per ad
+          balance: increment(2), // 2 points per ad
           updatedAt: serverTimestamp()
         });
         
@@ -390,7 +391,7 @@ export default function App() {
         (window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
       } catch {}
 
-      alert(`Day ${newStreak} Claimed! Reward: $${reward.toFixed(2)}`);
+      alert(`Day ${newStreak} Claimed! Reward: ${reward} points`);
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, userDocPath);
     } finally {
@@ -413,7 +414,7 @@ export default function App() {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       await updateDoc(doc(db, userDocPath), {
-        balance: increment(0.05), // $0.05 for joining channel
+        balance: increment(10), // 10 points for joining channel
         tasksCompleted: [...profile.tasksCompleted, 'tg_join'],
         updatedAt: serverTimestamp()
       });
@@ -421,7 +422,7 @@ export default function App() {
       try {
         (window as any).Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
       } catch {}
-      alert("Successfully verified! $0.05 added to your balance.");
+      alert("Successfully verified! 10 points added to your balance.");
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, userDocPath);
     } finally {
@@ -453,8 +454,8 @@ export default function App() {
     const amountNum = parseFloat(withdrawalAmount);
     
     // 1. Minimum Amount Check
-    if (isNaN(amountNum) || amountNum < 5) {
-      alert('Minimum withdrawal is $5.');
+    if (isNaN(amountNum) || amountNum < 1667) {
+      alert('Minimum withdrawal is 1667 points.');
       return;
     }
 
@@ -466,15 +467,15 @@ export default function App() {
 
     // 3. Lock System Check
     const availableInvites = (profile.total_invites || 0) - (profile.consumedInvites || 0);
-    const meetsInvites = availableInvites >= 20;
-    const adRequirement = 25;
+    const meetsInvites = availableInvites >= 2;
+    const adRequirement = profile.has_withdrawn ? 10 : 25;
     const meetsAds = (profile.adsSinceLastWithdrawal || 0) >= adRequirement;
 
     if (!meetsInvites || !meetsAds) {
       if (!meetsInvites) {
-        alert(`❌ Requirement Not Met: You need to invite 20 friends to unlock this withdrawal. You currently have ${availableInvites}/20. Keep sharing your link!`);
+        alert(`❌ Requirement Not Met: You need to invite 2 friends to unlock this withdrawal. You currently have ${availableInvites}/2. Keep sharing your link!`);
       } else {
-        alert(`❌ Ads Required: To support the payout pool, you must view 25 ads. You have completed ${profile.adsSinceLastWithdrawal}/25. Tap 'View Ads' to continue!`);
+        alert(`❌ Ads Required: To support the payout pool, you must view ${adRequirement} ads. You have completed ${profile.adsSinceLastWithdrawal}/${adRequirement}. Tap 'View Ads' to continue!`);
       }
       try {
         (window as any).Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
@@ -541,7 +542,7 @@ export default function App() {
           const successBatch = writeBatch(db);
           successBatch.update(newWithdrawalDocRef, { status: 'Success' });
           successBatch.update(userDocRef, {
-            consumedInvites: increment(20),
+            consumedInvites: increment(2),
             has_withdrawn: true,
             adsSinceLastWithdrawal: 0,
             updatedAt: serverTimestamp()
@@ -636,7 +637,7 @@ export default function App() {
             {activeTab === 'home' ? `Hello, ${userData?.username || 'User'}!` : activeTab === 'tasks' ? 'Tasks' : activeTab === 'invite' ? 'Invite' : activeTab === 'wallet' ? 'Withdraw' : 'Profile'}
           </h1>
           <p className="text-sm text-[#A0AEC0] mt-0.5">
-            {activeTab === 'home' ? "Let's earn some money today!" : activeTab === 'tasks' ? "Complete tasks to earn more" : activeTab === 'wallet' ? "Cash out your earnings" : "Refer friends to get paid"}
+            {activeTab === 'home' ? "Let's earn some points today!" : activeTab === 'tasks' ? "Complete tasks to earn more" : activeTab === 'wallet' ? "Cash out your earnings" : "Refer friends to get paid"}
           </p>
         </div>
         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#10B981] to-[#059669] flex items-center justify-center border border-white/10 shadow-lg shadow-[#10B981]/10 p-0.5">
@@ -658,7 +659,8 @@ export default function App() {
               <div className="relative z-10">
                 <p className="text-sm font-medium opacity-80 uppercase tracking-widest">Current Balance</p>
                 <h2 className="text-4xl font-extrabold mt-1 tracking-tight">
-                  ${(profile?.balance || 0).toFixed(2)}
+                  {Math.floor(profile?.balance || 0)} pts
+                  <span className="text-lg opacity-40 ml-3 font-medium">~${((profile?.balance || 0) * POINT_TO_USD).toFixed(2)}</span>
                 </h2>
                 
                 <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/20 pt-6">
@@ -743,7 +745,7 @@ export default function App() {
                           {isCompleted ? <Check className="w-4 h-4" /> : `Day ${day}`}
                         </div>
                         <span className={`text-[8px] font-bold ${isCurrent ? 'text-[#10B981]' : 'text-[#A0AEC0]'}`}>
-                          ${DAILY_REWARDS[i].toFixed(2)}
+                          {DAILY_REWARDS[i]} pts
                         </span>
                      </div>
                    );
@@ -776,7 +778,7 @@ export default function App() {
                          <CheckCircle2 className="w-3 h-3 text-green-400" />
                        )}
                     </div>
-                    <p className="text-xs text-[#A0AEC0]">Reward: $0.05 | Single Use</p>
+                    <p className="text-xs text-[#A0AEC0]">Reward: 10 points | Single Use</p>
                   </div>
                   
                   {!profile?.tasksCompleted.includes('tg_join') ? (
@@ -813,31 +815,31 @@ export default function App() {
             <div className="grid grid-cols-1 gap-3">
               <div className="stats-card rounded-2xl p-5 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-white/40'}`}>
-                   {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 ? <Check size={16} /> : <Users size={16} />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-white/40'}`}>
+                   {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? <Check size={16} /> : <Users size={16} />}
                   </div>
                   <div>
                     <span className="text-xs font-bold block">Invites Available</span>
                     <p className="text-[10px] opacity-40 uppercase font-medium">For next withdrawal</p>
                   </div>
                 </div>
-                <span className={`text-xs font-black ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 ? 'text-green-400' : 'text-[#10B981]'}`}>
-                  {Math.max(0, (profile?.total_invites || 0) - (profile?.consumedInvites || 0))}/20
+                <span className={`text-xs font-black ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? 'text-green-400' : 'text-[#10B981]'}`}>
+                  {Math.max(0, (profile?.total_invites || 0) - (profile?.consumedInvites || 0))}/2
                 </span>
               </div>
               
               <div className="stats-card rounded-2xl p-5 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(profile?.adsSinceLastWithdrawal || 0) >= 25 ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-[#A0AEC0]'}`}>
-                   {(profile?.adsSinceLastWithdrawal || 0) >= 25 ? <Check size={16} /> : <MonitorPlay size={16} />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25) ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-[#A0AEC0]'}`}>
+                   {(profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25) ? <Check size={16} /> : <MonitorPlay size={16} />}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold">Ads Requirement</span>
-                    <p className="text-[9px] opacity-40 uppercase font-medium">Required: 25</p>
+                    <p className="text-[9px] opacity-40 uppercase font-medium">Required: {profile?.has_withdrawn ? 10 : 25}</p>
                   </div>
                 </div>
-                <span className={`text-xs font-black ${(profile?.adsSinceLastWithdrawal || 0) >= 25 ? 'text-green-400' : 'text-[#EF4444]'}`}>
-                  {profile?.adsSinceLastWithdrawal || 0}/25
+                <span className={`text-xs font-black ${(profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25) ? 'text-green-400' : 'text-[#EF4444]'}`}>
+                  {profile?.adsSinceLastWithdrawal || 0}/{profile?.has_withdrawn ? 10 : 25}
                 </span>
               </div>
             </div>
@@ -886,16 +888,16 @@ export default function App() {
             {/* Input Form */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-[#A0AEC0] uppercase tracking-[0.2em] ml-1">Amount (Min. $5)</label>
+                <label className="text-[10px] font-black text-[#A0AEC0] uppercase tracking-[0.2em] ml-1">Amount (Min. 1667 pts)</label>
                 <div className="relative">
                   <input 
                     type="number"
                     value={withdrawalAmount}
                     onChange={(e) => setWithdrawalAmount(e.target.value)}
-                    placeholder="E.g. 10.00"
+                    placeholder="E.g. 2000"
                     className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-5 text-sm text-white focus:outline-none focus:border-[#10B981]/50 transition-all"
                   />
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#A0AEC0]">USD</div>
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#A0AEC0]">PTS</div>
                 </div>
               </div>
 
@@ -927,9 +929,9 @@ export default function App() {
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={handleWithdraw}
-              disabled={isWithdrawing || !profile || profile.balance < 5}
+              disabled={isWithdrawing || !profile || profile.balance < 1667}
               className={`w-full h-16 rounded-2xl font-black text-white shadow-lg transition-all flex items-center justify-center gap-3
-                ${(((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 && (profile?.adsSinceLastWithdrawal || 0) >= 25) 
+                ${(((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 && (profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25)) 
                   ? 'bg-gradient-to-r from-[#10B981] to-[#064E3B] shadow-[#10B981]/20' 
                   : 'bg-white/10 border border-white/5 text-white/20'}`}
             >
@@ -938,14 +940,14 @@ export default function App() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>PROCESSING...</span>
                 </div>
-              ) : ((((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 && (profile?.adsSinceLastWithdrawal || 0) >= 25) ? (
+              ) : ((((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 && (profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25)) ? (
                 'WITHDRAW NOW'
               ) : (
                 <>
                   <Wallet size={20} />
                   <span>
-                    {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) < 20 
-                      ? '20 INVITES REQUIRED' 
+                    {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) < 2 
+                      ? '2 INVITES REQUIRED' 
                       : 'ADS WATCHED REQ.'}
                   </span>
                 </>
@@ -980,7 +982,7 @@ export default function App() {
                                <img src={methodIcon} alt={item.method} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                              </div>
                              <div>
-                               <p className="text-sm font-black text-white uppercase tracking-tight">${(item.amount || 0).toFixed(2)}</p>
+                               <p className="text-sm font-black text-white uppercase tracking-tight">{item.amount} PTS</p>
                                <p className="text-[9px] font-bold text-[#A0AEC0] uppercase opacity-60">
                                  {item.createdAt?.toMillis ? new Date(item.createdAt.toMillis()).toLocaleDateString() : 'Processing...'}
                                </p>
@@ -1022,7 +1024,8 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-3 mb-8">
                   <div className="bg-black/30 p-4 rounded-2xl border border-white/5">
                     <p className="text-[10px] font-black opacity-40 uppercase tracking-widest text-[#A0AEC0]">Balance</p>
-                    <p className="text-xl font-black text-white mt-1">${(profile?.balance || 0).toFixed(2)}</p>
+                    <p className="text-xl font-black text-white mt-1">{Math.floor(profile?.balance || 0)} pts</p>
+                    <p className="text-[10px] text-[#10B981] font-bold">${((profile?.balance || 0) * POINT_TO_USD).toFixed(2)}</p>
                   </div>
                   <div className="bg-black/30 p-4 rounded-2xl border border-white/5">
                     <p className="text-[10px] font-black opacity-40 uppercase tracking-widest text-[#A0AEC0]">Invites</p>
@@ -1063,11 +1066,11 @@ export default function App() {
               <div className="space-y-3">
                 <details className="group bg-white/5 rounded-2xl border border-white/5 overflow-hidden transition-all">
                   <summary className="p-4 text-xs font-bold text-white/80 cursor-pointer list-none flex justify-between items-center hover:bg-white/5 transition-colors">
-                    How do I earn money?
+                    How do I earn points?
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    You earn money by watching short video ads ($0.01/ad) and completing daily tasks. You can also refer friends to earn a massive $0.30 per referral.
+                    You earn points by watching short video ads (2 pts/ad) and completing daily tasks. You can also refer friends to earn a massive 50 pts per referral (10 pts = $0.06).
                   </div>
                 </details>
 
@@ -1077,7 +1080,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    Minimum withdrawal is $5. Every withdrawal requires 25 ad views. You also need 2 fresh invites per withdrawal.
+                    Minimum withdrawal is 1667 points ($10.00). First withdrawal requires 25 ad views. Every following withdrawal requires 10 ad views since the previous success. You also need 2 fresh invites per withdrawal.
                   </div>
                 </details>
 
@@ -1125,7 +1128,7 @@ export default function App() {
                   </div>
                   <h2 className="text-3xl font-black mb-2 tracking-tight">Invite & Earn</h2>
                   <p className="text-sm opacity-80 max-w-[240px] leading-relaxed mx-auto">
-                    Earn <span className="text-white font-bold">$0.30</span> for every friend who starts earning with us
+                    Earn <span className="text-white font-bold">50 points</span> for every friend who starts earning with us
                   </p>
                   
                   <div className="grid grid-cols-2 gap-4 w-full mt-10">
@@ -1135,7 +1138,8 @@ export default function App() {
                     </div>
                     <div className="bg-black/30 backdrop-blur-md rounded-2xl p-5 border border-white/5 shadow-inner">
                       <p className="text-[10px] uppercase font-black opacity-40 tracking-[0.2em]">Earnings</p>
-                      <p className="text-3xl font-black mt-2 text-[#10B981] leading-none">${(profile?.referralEarnings || 0).toFixed(2)}</p>
+                      <p className="text-3xl font-black mt-2 text-[#10B981] leading-none">{Math.floor(profile?.referralEarnings || 0)} pts</p>
+                      <p className="text-[10px] font-bold text-white/40 mt-1">${((profile?.referralEarnings || 0) * POINT_TO_USD).toFixed(2)}</p>
                     </div>
                   </div>
                </div>
@@ -1151,7 +1155,7 @@ export default function App() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <label className="text-[10px] font-black text-[#A0AEC0] uppercase tracking-[0.15em]">Your Unique Link</label>
-                  <span className="text-[10px] text-[#10B981] font-bold">Earn $0.30 per friend!</span>
+                  <span className="text-[10px] text-[#10B981] font-bold">Earn 50 points per friend!</span>
                 </div>
                 <div className="relative group">
                   <input 
@@ -1189,7 +1193,7 @@ export default function App() {
                    <div>
                      <h5 className="font-bold text-sm mb-1 text-white">Verified Tracking</h5>
                      <p className="text-xs text-[#A0AEC0] leading-relaxed">
-                       Our system verifies every referral instantly using deep-link technology. You get paid $0.30 the moment they open the app.
+                       Our system verifies every referral instantly using deep-link technology. You get paid 50 points the moment they open the app.
                      </p>
                    </div>
                 </div>
