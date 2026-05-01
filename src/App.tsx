@@ -467,13 +467,13 @@ export default function App() {
 
     // 3. Lock System Check
     const availableInvites = (profile.total_invites || 0) - (profile.consumedInvites || 0);
-    const meetsInvites = availableInvites >= 2;
-    const adRequirement = profile.has_withdrawn ? 10 : 25;
+    const meetsInvites = availableInvites >= 20;
+    const adRequirement = 25;
     const meetsAds = (profile.adsSinceLastWithdrawal || 0) >= adRequirement;
 
     if (!meetsInvites || !meetsAds) {
       if (!meetsInvites) {
-        alert(`❌ Requirement Not Met: You need to invite 2 friends to unlock this withdrawal. You currently have ${availableInvites}/2. Keep sharing your link!`);
+        alert(`❌ Requirement Not Met: You need to invite 20 friends to unlock this withdrawal. You currently have ${availableInvites}/20. Keep sharing your link!`);
       } else {
         alert(`❌ Ads Required: To support the payout pool, you must view ${adRequirement} ads. You have completed ${profile.adsSinceLastWithdrawal}/${adRequirement}. Tap 'View Ads' to continue!`);
       }
@@ -536,13 +536,16 @@ export default function App() {
       setWithdrawalAddress('');
       setWithdrawalUid('');
 
-      // Automated Transition after 60 seconds (1 minute)
+      // Automated Transition after random 12-24 hours
+      const randomHours = Math.floor(Math.random() * (24 - 12 + 1) + 12);
+      const delayMs = randomHours * 60 * 60 * 1000;
+
       setTimeout(async () => {
         try {
           const successBatch = writeBatch(db);
           successBatch.update(newWithdrawalDocRef, { status: 'Success' });
           successBatch.update(userDocRef, {
-            consumedInvites: increment(2),
+            consumedInvites: increment(20),
             has_withdrawn: true,
             adsSinceLastWithdrawal: 0,
             updatedAt: serverTimestamp()
@@ -556,7 +559,7 @@ export default function App() {
         } catch (err) {
           console.error("Delayed Withdrawal Update Error:", err);
         }
-      }, 60000); // 1 minute delay
+      }, delayMs);
 
       // Auto hide success message banner after 5 seconds
       setTimeout(() => setWithdrawalSuccess(false), 5000);
@@ -815,31 +818,31 @@ export default function App() {
             <div className="grid grid-cols-1 gap-3">
               <div className="stats-card rounded-2xl p-5 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-white/40'}`}>
-                   {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? <Check size={16} /> : <Users size={16} />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-white/40'}`}>
+                   {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 ? <Check size={16} /> : <Users size={16} />}
                   </div>
                   <div>
                     <span className="text-xs font-bold block">Invites Available</span>
                     <p className="text-[10px] opacity-40 uppercase font-medium">For next withdrawal</p>
                   </div>
                 </div>
-                <span className={`text-xs font-black ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 ? 'text-green-400' : 'text-[#10B981]'}`}>
-                  {Math.max(0, (profile?.total_invites || 0) - (profile?.consumedInvites || 0))}/2
+                <span className={`text-xs font-black ${((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 ? 'text-green-400' : 'text-[#10B981]'}`}>
+                  {Math.max(0, (profile?.total_invites || 0) - (profile?.consumedInvites || 0))}/20
                 </span>
               </div>
               
               <div className="stats-card rounded-2xl p-5 border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25) ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-[#A0AEC0]'}`}>
-                   {(profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25) ? <Check size={16} /> : <MonitorPlay size={16} />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${(profile?.adsSinceLastWithdrawal || 0) >= 25 ? 'bg-green-500/10 text-green-400' : 'bg-white/10 text-[#A0AEC0]'}`}>
+                   {(profile?.adsSinceLastWithdrawal || 0) >= 25 ? <Check size={16} /> : <MonitorPlay size={16} />}
                   </div>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold">Ads Requirement</span>
-                    <p className="text-[9px] opacity-40 uppercase font-medium">Required: {profile?.has_withdrawn ? 10 : 25}</p>
+                    <p className="text-[9px] opacity-40 uppercase font-medium">Required: 25</p>
                   </div>
                 </div>
-                <span className={`text-xs font-black ${(profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25) ? 'text-green-400' : 'text-[#EF4444]'}`}>
-                  {profile?.adsSinceLastWithdrawal || 0}/{profile?.has_withdrawn ? 10 : 25}
+                <span className={`text-xs font-black ${(profile?.adsSinceLastWithdrawal || 0) >= 25 ? 'text-green-400' : 'text-[#EF4444]'}`}>
+                  {profile?.adsSinceLastWithdrawal || 0}/25
                 </span>
               </div>
             </div>
@@ -931,7 +934,7 @@ export default function App() {
               onClick={handleWithdraw}
               disabled={isWithdrawing || !profile || profile.balance < 1667}
               className={`w-full h-16 rounded-2xl font-black text-white shadow-lg transition-all flex items-center justify-center gap-3
-                ${(((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 && (profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25)) 
+                ${(((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 && (profile?.adsSinceLastWithdrawal || 0) >= 25) 
                   ? 'bg-gradient-to-r from-[#10B981] to-[#064E3B] shadow-[#10B981]/20' 
                   : 'bg-white/10 border border-white/5 text-white/20'}`}
             >
@@ -940,14 +943,14 @@ export default function App() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span>PROCESSING...</span>
                 </div>
-              ) : ((((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 2 && (profile?.adsSinceLastWithdrawal || 0) >= (profile?.has_withdrawn ? 10 : 25)) ? (
+              ) : ((((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) >= 20 && (profile?.adsSinceLastWithdrawal || 0) >= 25) ? (
                 'WITHDRAW NOW'
               ) : (
                 <>
                   <Wallet size={20} />
                   <span>
-                    {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) < 2 
-                      ? '2 INVITES REQUIRED' 
+                    {((profile?.total_invites || 0) - (profile?.consumedInvites || 0)) < 20 
+                      ? '20 INVITES REQUIRED' 
                       : 'ADS WATCHED REQ.'}
                   </span>
                 </>
@@ -1080,7 +1083,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    Minimum withdrawal is 1667 points ($10.00). First withdrawal requires 25 ad views. Every following withdrawal requires 10 ad views since the previous success. You also need 2 fresh invites per withdrawal.
+                    Minimum withdrawal is 1667 points ($10.00). Every withdrawal requires 25 ad views. You also need 20 fresh invites per withdrawal.
                   </div>
                 </details>
 
@@ -1090,7 +1093,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    Our system processes withdrawals with a 1-minute safety delay. Once processed and verified, the status in your history will change to Success.
+                    Our system processes withdrawals within 12-24 hours. Once processed and verified, the status in your history will change to Success.
                   </div>
                 </details>
               </div>
