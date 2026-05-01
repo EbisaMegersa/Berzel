@@ -6,7 +6,7 @@
     <title>Jaallatamaa Rewards</title>
     <script>
       (function() {
-        var highVersion = '10.0';
+        var highVersion = '6.10';
         var mockStorage = {
           setItem: function(k, v, cb) { if(cb) cb(null, true); return this; },
           getItem: function(k, cb) { if(cb) cb(null, null); return this; },
@@ -16,19 +16,21 @@
           getKeys: function(cb) { if(cb) cb(null, []); return this; }
         };
 
-        // Silence the CloudStorage specific warning/error from any SDK
         var _log = console.log;
         var _warn = console.warn;
         var _error = console.error;
-        var filter = function(args, original) {
-          if (args[0] && typeof args[0] === 'string' && args[0].includes('CloudStorage is not supported')) {
-            return;
-          }
-          original.apply(console, args);
+        console.log = function() {
+          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('6.0'))) return;
+          _log.apply(console, arguments);
         };
-        console.log = function() { filter(arguments, _log); };
-        console.warn = function() { filter(arguments, _warn); };
-        console.error = function() { filter(arguments, _error); };
+        console.warn = function() {
+          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('6.0'))) return;
+          _warn.apply(console, arguments);
+        };
+        console.error = function() {
+          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('6.0'))) return;
+          _error.apply(console, arguments);
+        };
 
         function applyPatch() {
           if (!window.Telegram) window.Telegram = {};
@@ -36,17 +38,24 @@
           
           var wa = window.Telegram.WebApp;
           try {
-            Object.defineProperty(wa, 'version', { value: highVersion, writable: false, configurable: true });
-            Object.defineProperty(wa, 'isVersionAtLeast', { value: function() { return true; }, writable: false, configurable: true });
-            Object.defineProperty(wa, 'CloudStorage', { value: mockStorage, writable: false, configurable: true });
+            // Force version to 6.10 to unlock features and silence warnings
+            if (wa.version !== highVersion) {
+              Object.defineProperty(wa, 'version', { value: highVersion, writable: false, configurable: true });
+            }
+            if (!wa.isVersionAtLeast || !wa.isVersionAtLeast(highVersion)) {
+              Object.defineProperty(wa, 'isVersionAtLeast', { value: function() { return true; }, writable: false, configurable: true });
+            }
+            if (!wa.CloudStorage) {
+              Object.defineProperty(wa, 'CloudStorage', { value: mockStorage, writable: false, configurable: true });
+            }
             if (wa.initDataUnsafe) wa.initDataUnsafe.version = highVersion;
           } catch(e) {}
         }
 
         applyPatch();
-        // Constant enforcement for the first 10 seconds
-        var patchTimer = setInterval(applyPatch, 100);
-        setTimeout(function() { clearInterval(patchTimer); }, 10000);
+        // Constant enforcement to prevent official SDK from overwriting
+        var patchTimer = setInterval(applyPatch, 50);
+        setTimeout(function() { clearInterval(patchTimer); }, 20000);
       })();
     </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>

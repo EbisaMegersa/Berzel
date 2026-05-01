@@ -3,16 +3,16 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-primary: #EF4444;
-  --color-secondary: #B91C1C;
+  --color-primary: #10B981;
+  --color-secondary: #059669;
 }
 
 :root {
   color-scheme: dark;
   --midnight: #0D0D0D;
   --slate-gray: #A0AEC0;
-  --brand-blue: #EF4444;
-  --brand-purple: #991B1B;
+  --brand-blue: #10B981;
+  --brand-purple: #064E3B;
 }
 
 body {
@@ -77,6 +77,6 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(239, 68, 68, 0.3);
+  background: rgba(16, 185, 129, 0.3);
   border-radius: 10px;
 }
