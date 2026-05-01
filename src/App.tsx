@@ -236,7 +236,7 @@ export default function App() {
                       joinedAt: serverTimestamp()
                     });
                     
-                    tg.showAlert(`Welcome! You were referred. Referral rewards applied to your friend!`);
+                    tg.showAlert(`Welcome! You got 10 points welcome bonus`);
                     tg.HapticFeedback?.notificationOccurred('success');
                   } else {
                     console.warn("Inviter NOT found in database for ID:", inviterIdFromParam);
@@ -1073,7 +1073,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    You earn points by watching short video ads (2 pts/ad) and completing daily tasks. You can also refer friends to earn a massive 50 pts per referral (10 pts = $0.06).
+                    You earn points by watching short video ads (2 pts/ad) and completing daily tasks. You can also refer friends to earn a massive 50 pts per referral.
                   </div>
                 </details>
 
@@ -1083,7 +1083,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    Minimum withdrawal is 1667 points ($10.00). Every withdrawal requires 25 ad views. You also need 20 fresh invites per withdrawal.
+                    Minimum withdrawal is 1667 points ($10.00). withdrawal requires 25 ad views. You also need 20 invites per withdrawal.
                   </div>
                 </details>
 
@@ -1093,7 +1093,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    Our system processes withdrawals within 12-24 hours. Once processed and verified, the status in your history will change to Success.
+                    Our system processes withdrawals within 6-24 hours. Once processed we will review your request(we won't pay multiple refer).
                   </div>
                 </details>
               </div>
@@ -1106,7 +1106,7 @@ export default function App() {
                 className="w-full h-14 mt-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
               >
                 <ExternalLink size={18} className="text-[#10B981]" />
-                NEED HELP? READ FAQ & CONTACT
+                NEED HELP? CONTACT US
               </motion.a>
             </div>
             
@@ -1196,7 +1196,7 @@ export default function App() {
                    <div>
                      <h5 className="font-bold text-sm mb-1 text-white">Verified Tracking</h5>
                      <p className="text-xs text-[#A0AEC0] leading-relaxed">
-                       Our system verifies every referral instantly ,beware multiple(polygamy). You get paid 50 points the moment they open the app.
+                       Our system verifies every referral instantly, beware multiple(polygamy). You get paid 50 points the moment they open the app.
                      </p>
                    </div>
                 </div>
