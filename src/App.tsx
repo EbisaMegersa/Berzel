@@ -579,8 +579,8 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#061B1B] p-10 text-center">
         <Loader2 className="w-12 h-12 animate-spin text-[#10B981] mb-6" />
-        <h2 className="text-xl font-black text-white mb-2">Loading @Madbot...</h2>
-        <p className="text-sm text-[#A0AEC0]">Securing connection to rewards gateway</p>
+        <h2 className="text-xl font-black text-white mb-2">Hi, Welcome</h2>
+        <p className="text-sm text-[#A0AEC0]">Easy, Fast, Real, No investment...</p>
       </div>
     );
   }
@@ -640,7 +640,7 @@ export default function App() {
             {activeTab === 'home' ? `Hello, ${userData?.username || 'User'}!` : activeTab === 'tasks' ? 'Tasks' : activeTab === 'invite' ? 'Invite' : activeTab === 'wallet' ? 'Withdraw' : 'Profile'}
           </h1>
           <p className="text-sm text-[#A0AEC0] mt-0.5">
-            {activeTab === 'home' ? "Let's earn some points today!" : activeTab === 'tasks' ? "Complete tasks to earn more" : activeTab === 'wallet' ? "Cash out your earnings" : "Refer friends to get paid"}
+            {activeTab === 'home' ? "Let's earn some points(usd) today!" : activeTab === 'tasks' ? "Complete tasks to earn more" : activeTab === 'wallet' ? "Cash out your earnings" : "Refer friends to get paid"}
           </p>
         </div>
         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#10B981] to-[#059669] flex items-center justify-center border border-white/10 shadow-lg shadow-[#10B981]/10 p-0.5">
@@ -776,7 +776,7 @@ export default function App() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                       <h4 className="font-bold text-sm">Join @ebisa_emoji</h4>
+                       <h4 className="font-bold text-sm">Join @tasktuner</h4>
                        {profile?.tasksCompleted.includes('tg_join') && (
                          <CheckCircle2 className="w-3 h-3 text-green-400" />
                        )}
@@ -787,7 +787,7 @@ export default function App() {
                   {!profile?.tasksCompleted.includes('tg_join') ? (
                     <div className="flex flex-col gap-2">
                       <a 
-                        href="https://t.me/ebisa_emoji" 
+                        href="https://t.me/TaskTuner" 
                         target="_blank" 
                         rel="noreferrer"
                         className="px-4 py-1.5 rounded-lg bg-[#10B981]/20 text-[#10B981] text-[10px] font-bold border border-[#10B981]/20 text-center flex items-center gap-1"
@@ -1100,7 +1100,7 @@ export default function App() {
 
               <motion.a 
                 whileTap={{ scale: 0.98 }}
-                href="https://t.me/yeman1th"
+                href="http://t.me/TaskTunerSupportBot"
                 target="_blank"
                 rel="noreferrer"
                 className="w-full h-14 mt-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold flex items-center justify-center gap-3 hover:bg-white/10 transition-all"
@@ -1196,7 +1196,7 @@ export default function App() {
                    <div>
                      <h5 className="font-bold text-sm mb-1 text-white">Verified Tracking</h5>
                      <p className="text-xs text-[#A0AEC0] leading-relaxed">
-                       Our system verifies every referral instantly using deep-link technology. You get paid 50 points the moment they open the app.
+                       Our system verifies every referral instantly ,beware multiple(polygamy). You get paid 50 points the moment they open the app.
                      </p>
                    </div>
                 </div>
