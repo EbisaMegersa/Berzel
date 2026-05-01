@@ -21,49 +21,54 @@
           if (callback) callback(params.buttons ? params.buttons[0].id : null);
         };
 
-        var _log = console.log;
-        var _warn = console.warn;
-        var _error = console.error;
-        console.log = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('showPopup') || arguments[0].includes('6.0'))) return;
-          _log.apply(console, arguments);
-        };
-        console.warn = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('showPopup') || arguments[0].includes('6.0'))) return;
-          _warn.apply(console, arguments);
-        };
-        console.error = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('showPopup') || arguments[0].includes('6.0'))) return;
-          _error.apply(console, arguments);
-        };
-
-        function applyPatch() {
-          if (!window.Telegram) window.Telegram = {};
-          if (!window.Telegram.WebApp) window.Telegram.WebApp = {};
-          
-          var wa = window.Telegram.WebApp;
+        function patchWebApp(obj) {
+          if (!obj) return;
           try {
-            // Force version to 8.0 to unlock features and silence warnings
-            if (wa.version !== highVersion) {
-              Object.defineProperty(wa, 'version', { value: highVersion, writable: true, configurable: true });
+            Object.defineProperty(obj, 'version', { 
+              value: highVersion, 
+              writable: false, 
+              configurable: true 
+            });
+            Object.defineProperty(obj, 'isVersionAtLeast', { 
+              value: function() { return true; }, 
+              writable: false, 
+              configurable: true 
+            });
+            if (!obj.CloudStorage) {
+              Object.defineProperty(obj, 'CloudStorage', { 
+                value: mockStorage, 
+                writable: true, 
+                configurable: true 
+              });
             }
-            if (!wa.isVersionAtLeast || !wa.isVersionAtLeast(highVersion)) {
-              Object.defineProperty(wa, 'isVersionAtLeast', { value: function() { return true; }, writable: true, configurable: true });
+            if (!obj.showPopup) {
+              Object.defineProperty(obj, 'showPopup', { 
+                value: mockShowPopup, 
+                writable: true, 
+                configurable: true 
+              });
             }
-            if (!wa.CloudStorage) {
-              Object.defineProperty(wa, 'CloudStorage', { value: mockStorage, writable: true, configurable: true });
-            }
-            if (!wa.showPopup) {
-              Object.defineProperty(wa, 'showPopup', { value: mockShowPopup, writable: true, configurable: true });
-            }
-            if (wa.initDataUnsafe) wa.initDataUnsafe.version = highVersion;
-          } catch(e) {}
+            if (obj.initDataUnsafe) obj.initDataUnsafe.version = highVersion;
+          } catch (e) {}
         }
 
-        applyPatch();
-        // Constant enforcement to prevent official SDK from overwriting
-        var patchTimer = setInterval(applyPatch, 50);
-        setTimeout(function() { clearInterval(patchTimer); }, 20000);
+        // Pre-define Telegram with a getter/setter to catch WebApp assignment
+        var _tp = {};
+        Object.defineProperty(window, 'Telegram', {
+          get: function() { return _tp; },
+          set: function(val) {
+            _tp = val || {};
+            if (_tp.WebApp) patchWebApp(_tp.WebApp);
+          },
+          configurable: true
+        });
+
+        // Periodic check just in case
+        setInterval(function() {
+          if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.version !== highVersion) {
+            patchWebApp(window.Telegram.WebApp);
+          }
+        }, 100);
       })();
     </script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
