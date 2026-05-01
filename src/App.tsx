@@ -775,7 +775,7 @@ export default function App() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                       <h4 className="font-bold text-sm">Join @ebisa_emoji</h4>
+                       <h4 className="font-bold text-sm">Join @jaalloo_emoji</h4>
                        {profile?.tasksCompleted.includes('tg_join') && (
                          <CheckCircle2 className="w-3 h-3 text-green-400" />
                        )}
