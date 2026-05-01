@@ -123,6 +123,8 @@ export default function App() {
   const [withdrawalHistory, setWithdrawalHistory] = useState<WithdrawalHistory[]>([]);
   const [referrals, setReferrals] = useState<ReferralRecord[]>([]);
   const [withdrawalSuccess, setWithdrawalSuccess] = useState(false);
+  const [manualReferralId, setManualReferralId] = useState('');
+  const [isClaimingReferral, setIsClaimingReferral] = useState(false);
 
   // Initialize Telegram & Data
   useEffect(() => {
@@ -132,10 +134,11 @@ export default function App() {
     let unsubscribeReferrals: (() => void) | undefined;
 
     const extractStartParam = (tg: any) => {
-      if (tg.initDataUnsafe?.start_param) return tg.initDataUnsafe.start_param;
+      if (tg.initDataUnsafe?.start_param) return String(tg.initDataUnsafe.start_param);
       try {
         const urlParams = new URLSearchParams(tg.initData);
-        return urlParams.get('start_param');
+        const p = urlParams.get('start_param');
+        return p ? String(p) : null;
       } catch (e) {
         return null;
       }
@@ -151,10 +154,10 @@ export default function App() {
       tg.ready();
       tg.expand();
       
-      // Theme Integration: Golden Premium Theme
+      // Theme Integration: Purple Premium Theme
       try {
-        tg.setHeaderColor('#F59E0B');
-        tg.setBackgroundColor('#0F0A00');
+        tg.setHeaderColor('#8B5CF6');
+        tg.setBackgroundColor('#0A0014');
       } catch (e) {
         console.error("Theme set error", e);
       }
@@ -449,6 +452,57 @@ export default function App() {
     }
   };
 
+  const handleManualReferral = async () => {
+    if (!profile || (profile.invitedBy && profile.invitedBy !== 'Direct') || !auth.currentUser || !manualReferralId) return;
+    if (manualReferralId === String(profile.telegramId)) {
+      (window as any).Telegram?.WebApp?.showAlert("You can't refer yourself!");
+      return;
+    }
+
+    setIsClaimingReferral(true);
+    try {
+      const inviterQuery = query(collection(db, "users"), where("telegramId", "==", parseInt(manualReferralId)), limit(1));
+      const querySnapshot = await getDocs(inviterQuery);
+
+      if (!querySnapshot.empty) {
+        const inviterDoc = querySnapshot.docs[0];
+        const userDocPath = `users/${auth.currentUser.uid}`;
+        
+        // Reward inviter
+        await updateDoc(doc(db, "users", inviterDoc.id), {
+          balance: increment(50),
+          total_invites: increment(1),
+          referralEarnings: increment(50),
+          updatedAt: serverTimestamp()
+        });
+
+        // Track in sub-collection
+        await setDoc(doc(db, `users/${inviterDoc.id}/referrals/${auth.currentUser.uid}`), {
+          telegramId: profile.telegramId,
+          username: profile.username,
+          joinedAt: serverTimestamp()
+        });
+
+        // Update current user
+        await updateDoc(doc(db, userDocPath), {
+          invitedBy: manualReferralId,
+          balance: increment(10), // Give them the 10 pts bonus
+          updatedAt: serverTimestamp()
+        });
+
+        (window as any).Telegram?.WebApp?.showAlert('Referral claimed! You received 10 pts bonus.');
+        setManualReferralId('');
+      } else {
+        (window as any).Telegram?.WebApp?.showAlert('User not found. Check the ID.');
+      }
+    } catch (e) {
+      console.error("Manual Referral Error", e);
+      (window as any).Telegram?.WebApp?.showAlert('Failed to claim referral.');
+    } finally {
+      setIsClaimingReferral(false);
+    }
+  };
+
   const referralLink = profile ? `https://t.me/Madbottherbot?startapp=${profile.telegramId}` : '';
 
   const handleCopyLink = () => {
@@ -593,8 +647,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0F0A00] p-10 text-center">
-        <Loader2 className="w-12 h-12 animate-spin text-[#F59E0B] mb-6" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0014] p-10 text-center">
+        <Loader2 className="w-12 h-12 animate-spin text-[#8B5CF6] mb-6" />
         <h2 className="text-xl font-black text-white mb-2">Loading @Madbot...</h2>
         <p className="text-sm text-[#A0AEC0]">Securing connection to rewards gateway</p>
       </div>
@@ -629,12 +683,12 @@ export default function App() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0F0A00] p-8 text-center">
-        <div className="w-20 h-20 rounded-full bg-[#F59E0B]/10 flex items-center justify-center mb-6">
-          <Bell className="w-10 h-10 text-[#F59E0B]" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0A0014] p-8 text-center">
+        <div className="w-20 h-20 rounded-full bg-[#8B5CF6]/10 flex items-center justify-center mb-6">
+          <Bell className="w-10 h-10 text-[#8B5CF6]" />
         </div>
         <h2 className="text-2xl font-black text-white mb-4">Connection Failed</h2>
-        <p className="text-[#F59E0B] text-sm mb-10 leading-relaxed bg-[#F59E0B]/5 p-4 rounded-xl border border-[#F59E0B]/10">
+        <p className="text-[#8B5CF6] text-sm mb-10 leading-relaxed bg-[#8B5CF6]/5 p-4 rounded-xl border border-[#8B5CF6]/10">
           {error}
         </p>
         <button 
@@ -648,7 +702,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen pb-28 bg-[#0F0A00] font-sans selection:bg-[#F59E0B]/30 overflow-x-hidden">
+    <div className="min-h-screen pb-28 bg-[#0A0014] font-sans selection:bg-[#8B5CF6]/30 overflow-x-hidden">
       {/* Header Section */}
       <header className="px-6 pt-6 pb-4 flex items-center justify-between">
         <div>
@@ -659,7 +713,7 @@ export default function App() {
             {activeTab === 'home' ? "Let's earn some points today!" : activeTab === 'tasks' ? "Complete tasks to earn more" : activeTab === 'wallet' ? "Cash out your earnings" : "Refer friends to get paid"}
           </p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#F59E0B] to-[#D97706] flex items-center justify-center border border-white/10 shadow-lg shadow-[#F59E0B]/10 p-0.5">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#8B5CF6] to-[#7C3AED] flex items-center justify-center border border-white/10 shadow-lg shadow-[#8B5CF6]/10 p-0.5">
           <div className="w-full h-full rounded-full bg-[#0F0A00] flex items-center justify-center">
              <UserIcon className="w-5 h-5 text-white" />
           </div>
@@ -673,7 +727,7 @@ export default function App() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="gradient-card rounded-[24px] p-6 text-white shadow-xl shadow-[#F59E0B]/10"
+              className="gradient-card rounded-[24px] p-6 text-white shadow-xl shadow-[#8B5CF6]/10"
             >
               <div className="relative z-10">
                 <p className="text-sm font-medium opacity-80 uppercase tracking-widest">Current Balance</p>
@@ -703,7 +757,7 @@ export default function App() {
               whileTap={{ scale: 0.98 }}
               onClick={handleWatchAd}
               disabled={isWatching}
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#F59E0B] to-[#D97706] flex items-center justify-center gap-3 text-white font-bold shadow-lg shadow-[#F59E0B]/20 disabled:opacity-70 disabled:cursor-not-allowed group transition-all"
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-[#8B5CF6] to-[#7C3AED] flex items-center justify-center gap-3 text-white font-bold shadow-lg shadow-[#8B5CF6]/20 disabled:opacity-70 disabled:cursor-not-allowed group transition-all"
             >
               {isWatching ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -715,14 +769,14 @@ export default function App() {
 
             {/* Daily Rewards Sneak Peek */}
             <section className="stats-card rounded-2xl p-4 flex items-center gap-4 cursor-pointer" onClick={() => setActiveTab('tasks')}>
-              <div className="w-12 h-12 rounded-xl bg-[#F59E0B]/10 flex items-center justify-center">
-                <Zap className="w-6 h-6 text-[#F59E0B]" />
+              <div className="w-12 h-12 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center">
+                <Zap className="w-6 h-6 text-[#8B5CF6]" />
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-sm">Daily Reward</h4>
                 <p className="text-xs text-[#A0AEC0]">Current Streak: {profile?.dailyStreak || 0} Days</p>
               </div>
-              <div className="px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-[10px] font-bold border border-[#F59E0B]/20 uppercase">
+              <div className="px-3 py-1 rounded-full bg-[#8B5CF6]/10 text-[#8B5CF6] text-[10px] font-bold border border-[#8B5CF6]/20 uppercase">
                  View Tasks
               </div>
             </section>
@@ -737,10 +791,10 @@ export default function App() {
                     <p className="text-xs text-[#A0AEC0]">Claim your daily reward</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-[#F59E0B]">{profile?.dailyStreak}/7 Days</p>
+                    <p className="text-xs font-bold text-[#8B5CF6]">{profile?.dailyStreak}/7 Days</p>
                     <div className="w-20 h-1.5 bg-white/10 rounded-full mt-1 overflow-hidden">
                        <div 
-                        className="h-full bg-[#F59E0B]" 
+                        className="h-full bg-[#8B5CF6]" 
                         style={{ width: `${((profile?.dailyStreak || 0) / 7) * 100}%` }}
                        />
                     </div>
@@ -756,13 +810,13 @@ export default function App() {
                    return (
                      <div key={day} className="flex flex-col items-center gap-2">
                         <div className={`w-full aspect-square rounded-xl flex items-center justify-center text-[10px] font-bold border transition-all
-                          ${isCompleted ? 'bg-[#F59E0B] border-[#F59E0B] text-white' : 
-                            isCurrent ? 'bg-white/5 border-[#F59E0B] text-[#F59E0B] shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 
+                          ${isCompleted ? 'bg-[#8B5CF6] border-[#8B5CF6] text-white' : 
+                            isCurrent ? 'bg-white/5 border-[#8B5CF6] text-[#8B5CF6] shadow-[0_0_10px_rgba(139,92,246,0.2)]' : 
                             'bg-white/5 border-white/10 text-[#A0AEC0]'}`}
                         >
                           {isCompleted ? <Check className="w-4 h-4" /> : `Day ${day}`}
                         </div>
-                        <span className={`text-[8px] font-bold ${isCurrent ? 'text-[#F59E0B]' : 'text-[#A0AEC0]'}`}>
+                        <span className={`text-[8px] font-bold ${isCurrent ? 'text-[#8B5CF6]' : 'text-[#A0AEC0]'}`}>
                           {DAILY_REWARDS[i]} pts
                         </span>
                      </div>
@@ -774,7 +828,7 @@ export default function App() {
                 whileTap={{ scale: 0.98 }}
                 onClick={handleDailyCheckIn}
                 disabled={isClaimingDaily}
-                className="w-full py-3 rounded-xl bg-[#F59E0B] text-white text-sm font-bold shadow-lg shadow-[#F59E0B]/20 disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-[#8B5CF6] text-white text-sm font-bold shadow-lg shadow-[#8B5CF6]/20 disabled:opacity-50"
                >
                  {isClaimingDaily ? 'Claiming...' : 'Claim Today\'s Reward'}
                </motion.button>
@@ -785,15 +839,15 @@ export default function App() {
             
             <div className="space-y-4">
                {/* Telegram Join Task */}
-               <div className="stats-card rounded-2xl p-4 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-amber-400" />
+                <div className="stats-card rounded-2xl p-4 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-violet-400" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                        <h4 className="font-bold text-sm">Join @ebisa_emoji</h4>
                        {profile?.tasksCompleted.includes('tg_join') && (
-                         <CheckCircle2 className="w-3 h-3 text-amber-400" />
+                         <CheckCircle2 className="w-3 h-3 text-violet-400" />
                        )}
                     </div>
                     <p className="text-xs text-[#A0AEC0]">Reward: 5 points | Single Use</p>
@@ -805,7 +859,7 @@ export default function App() {
                         href="https://t.me/ebisa_emoji" 
                         target="_blank" 
                         rel="noreferrer"
-                        className="px-4 py-1.5 rounded-lg bg-[#F59E0B]/20 text-[#F59E0B] text-[10px] font-bold border border-[#F59E0B]/20 text-center flex items-center gap-1"
+                        className="px-4 py-1.5 rounded-lg bg-[#8B5CF6]/20 text-[#8B5CF6] text-[10px] font-bold border border-[#8B5CF6]/20 text-center flex items-center gap-1"
                       >
                          Join <ExternalLink size={10} />
                       </a>
@@ -818,7 +872,7 @@ export default function App() {
                       </button>
                     </div>
                   ) : (
-                    <div className="px-4 py-2 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] font-bold border border-amber-500/10">
+                    <div className="px-4 py-2 rounded-lg bg-violet-500/10 text-violet-400 text-[10px] font-bold border border-violet-500/10">
                        Success
                     </div>
                   )}
@@ -1009,7 +1063,7 @@ export default function App() {
                           <div className="text-right">
                              <div className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5
                                ${item.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-500' : 
-                                 item.status === 'Success' ? 'bg-amber-500/10 text-amber-500' : 
+                                 item.status === 'Success' ? 'bg-[#8B5CF6]/10 text-[#8B5CF6]' : 
                                  'bg-red-500/10 text-red-500'}`}
                              >
                                 <span className="w-1 h-1 rounded-full bg-current shadow-[0_0_5px_currentColor]" />
@@ -1054,18 +1108,55 @@ export default function App() {
                   </div>
                   <div className="bg-black/30 p-4 rounded-2xl border border-white/5">
                     <p className="text-[10px] font-black opacity-40 uppercase tracking-widest text-[#A0AEC0]">Current Ads</p>
-                    <p className="text-xl font-black text-[#F59E0B] mt-1">{profile?.adsSinceLastWithdrawal || 0}</p>
+                    <p className="text-xl font-black text-[#8B5CF6] mt-1">{profile?.adsSinceLastWithdrawal || 0}</p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center p-5 bg-black/30 rounded-2xl border border-white/5">
                     <span className="text-xs font-bold opacity-40 uppercase tracking-widest text-[#A0AEC0]">Invited By</span>
-                    <span className="text-sm font-bold text-[#F59E0B]">{profile?.invitedBy || 'Direct Join'}</span>
+                    <span className="text-sm font-bold text-[#8B5CF6]">{profile?.invitedBy && profile.invitedBy !== 'Direct' ? profile.invitedBy : 'Direct Join'}</span>
                   </div>
-                  <div className="flex justify-between items-center p-5 bg-black/30 rounded-2xl border border-white/5">
-                    <span className="text-xs font-bold opacity-40 uppercase tracking-widest text-[#A0AEC0]">Telegram ID</span>
-                    <span className="text-sm font-mono text-white">{userData?.id}</span>
+
+                  {(!profile?.invitedBy || profile?.invitedBy === 'Direct') && (
+                    <div className="p-5 bg-[#8B5CF6]/5 border border-[#8B5CF6]/20 rounded-2xl mt-2">
+                      <p className="text-[10px] font-black text-[#8B5CF6] uppercase mb-3 tracking-[0.2em]">Claim Welcome Bonus (10 pts)</p>
+                      <div className="flex gap-2">
+                        <input 
+                          type="number" 
+                          placeholder="Inviter TG ID"
+                          value={manualReferralId}
+                          onChange={(e) => setManualReferralId(e.target.value)}
+                          className="flex-1 h-12 bg-black/40 border border-white/10 rounded-xl px-4 text-sm text-white focus:outline-none focus:border-[#8B5CF6]/50 transition-all font-mono"
+                        />
+                        <button 
+                          onClick={handleManualReferral}
+                          disabled={isClaimingReferral || !manualReferralId}
+                          className="h-12 px-6 bg-[#8B5CF6] text-white rounded-xl text-xs font-black uppercase tracking-tight active:scale-95 disabled:opacity-50 transition-all"
+                        >
+                          {isClaimingReferral ? <Loader2 size={16} className="animate-spin" /> : 'Claim'}
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-[#A0AEC0] mt-3 font-medium flex items-center gap-1.5 opacity-60">
+                        <Zap size={10} />
+                        Ask your friend for their Telegram ID
+                      </p>
+                    </div>
+                  )}
+
+                  <div 
+                    onClick={() => {
+                      navigator.clipboard.writeText(String(userData?.id));
+                      (window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+                      (window as any).Telegram?.WebApp?.showAlert('Telegram ID copied to clipboard!');
+                    }}
+                    className="flex justify-between items-center p-5 bg-black/30 rounded-2xl border border-white/5 active:bg-white/5 transition-all cursor-pointer group"
+                  >
+                    <span className="text-xs font-bold opacity-40 uppercase tracking-widest text-[#A0AEC0]">Your Telegram ID</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-mono text-white">{userData?.id}</span>
+                      <Copy size={12} className="text-[#8B5CF6] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1155,14 +1246,14 @@ export default function App() {
                     </div>
                     <div className="bg-black/30 backdrop-blur-md rounded-2xl p-5 border border-white/5 shadow-inner">
                       <p className="text-[10px] uppercase font-black opacity-40 tracking-[0.2em]">Earnings</p>
-                      <p className="text-3xl font-black mt-2 text-[#F59E0B] leading-none">{Math.floor(profile?.referralEarnings || 0)} pts</p>
+                      <p className="text-3xl font-black mt-2 text-[#8B5CF6] leading-none">{Math.floor(profile?.referralEarnings || 0)} pts</p>
                     </div>
                   </div>
                </div>
 
                {/* Modern Decorative Blurs */}
-               <div className="absolute -right-16 -top-16 w-48 h-48 bg-[#F59E0B]/30 rounded-full blur-[60px]" />
-               <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-[#F59E0B]/30 rounded-full blur-[60px]" />
+               <div className="absolute -right-16 -top-16 w-48 h-48 bg-[#8B5CF6]/30 rounded-full blur-[60px]" />
+               <div className="absolute -left-16 -bottom-16 w-48 h-48 bg-[#8B5CF6]/30 rounded-full blur-[60px]" />
             </motion.div>
 
             {/* Invite Actions Section */}
@@ -1171,17 +1262,17 @@ export default function App() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <label className="text-[10px] font-black text-[#A0AEC0] uppercase tracking-[0.15em]">Your Unique Link</label>
-                  <span className="text-[10px] text-[#F59E0B] font-bold">Earn 50 points per friend!</span>
+                  <span className="text-[10px] text-[#8B5CF6] font-bold">Earn 50 points per friend!</span>
                 </div>
                 <div className="relative group">
                   <input 
                     readOnly 
                     value={referralLink}
-                    className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 text-xs text-white pr-16 focus:outline-none focus:border-[#F59E0B]/50 transition-all font-mono"
+                    className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-6 text-xs text-white pr-16 focus:outline-none focus:border-[#8B5CF6]/50 transition-all font-mono"
                   />
                   <button 
                     onClick={handleCopyLink}
-                    className="absolute right-2.5 top-2.5 bottom-2.5 w-11 bg-[#F59E0B] rounded-xl flex items-center justify-center text-white active:scale-95 transition-all shadow-lg shadow-[#F59E0B]/20 hover:bg-[#D97706]"
+                    className="absolute right-2.5 top-2.5 bottom-2.5 w-11 bg-[#8B5CF6] rounded-xl flex items-center justify-center text-white active:scale-95 transition-all shadow-lg shadow-[#8B5CF6]/20 hover:bg-[#7C3AED]"
                   >
                     <Copy size={18} />
                   </button>
@@ -1204,7 +1295,7 @@ export default function App() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                   <h4 className="font-bold text-sm text-white uppercase tracking-tight flex items-center gap-2">
-                    <Users size={16} className="text-[#F59E0B]" />
+                    <Users size={16} className="text-[#8B5CF6]" />
                     My Friends ({referrals.length})
                   </h4>
                 </div>
@@ -1215,7 +1306,7 @@ export default function App() {
                       {referrals.map((friend) => (
                         <div key={friend.id} className="p-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#F59E0B]/20 to-[#D97706]/20 flex items-center justify-center text-[#F59E0B] font-bold text-xs border border-[#F59E0B]/10">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#8B5CF6]/20 to-[#7C3AED]/20 flex items-center justify-center text-[#8B5CF6] font-bold text-xs border border-[#8B5CF6]/10">
                               {friend.username?.[0]?.toUpperCase() || 'U'}
                             </div>
                             <div className="text-left">
