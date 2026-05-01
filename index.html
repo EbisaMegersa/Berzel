@@ -6,7 +6,7 @@
     <title>Jaallatamaa Rewards</title>
     <script>
       (function() {
-        var highVersion = '6.10';
+        var highVersion = '8.0';
         var mockStorage = {
           setItem: function(k, v, cb) { if(cb) cb(null, true); return this; },
           getItem: function(k, cb) { if(cb) cb(null, null); return this; },
@@ -16,19 +16,24 @@
           getKeys: function(cb) { if(cb) cb(null, []); return this; }
         };
 
+        var mockShowPopup = function(params, callback) {
+          console.log('Mocked showPopup call suppressed:', params);
+          if (callback) callback(params.buttons ? params.buttons[0].id : null);
+        };
+
         var _log = console.log;
         var _warn = console.warn;
         var _error = console.error;
         console.log = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('6.0'))) return;
+          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('showPopup') || arguments[0].includes('6.0'))) return;
           _log.apply(console, arguments);
         };
         console.warn = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('6.0'))) return;
+          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('showPopup') || arguments[0].includes('6.0'))) return;
           _warn.apply(console, arguments);
         };
         console.error = function() {
-          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('6.0'))) return;
+          if (arguments[0] && typeof arguments[0] === 'string' && (arguments[0].includes('CloudStorage') || arguments[0].includes('showPopup') || arguments[0].includes('6.0'))) return;
           _error.apply(console, arguments);
         };
 
@@ -38,15 +43,18 @@
           
           var wa = window.Telegram.WebApp;
           try {
-            // Force version to 6.10 to unlock features and silence warnings
+            // Force version to 8.0 to unlock features and silence warnings
             if (wa.version !== highVersion) {
-              Object.defineProperty(wa, 'version', { value: highVersion, writable: false, configurable: true });
+              Object.defineProperty(wa, 'version', { value: highVersion, writable: true, configurable: true });
             }
             if (!wa.isVersionAtLeast || !wa.isVersionAtLeast(highVersion)) {
-              Object.defineProperty(wa, 'isVersionAtLeast', { value: function() { return true; }, writable: false, configurable: true });
+              Object.defineProperty(wa, 'isVersionAtLeast', { value: function() { return true; }, writable: true, configurable: true });
             }
             if (!wa.CloudStorage) {
-              Object.defineProperty(wa, 'CloudStorage', { value: mockStorage, writable: false, configurable: true });
+              Object.defineProperty(wa, 'CloudStorage', { value: mockStorage, writable: true, configurable: true });
+            }
+            if (!wa.showPopup) {
+              Object.defineProperty(wa, 'showPopup', { value: mockShowPopup, writable: true, configurable: true });
             }
             if (wa.initDataUnsafe) wa.initDataUnsafe.version = highVersion;
           } catch(e) {}
