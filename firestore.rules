@@ -48,12 +48,12 @@ service cloud.firestore {
           incoming().diff(existing()).affectedKeys().hasAny(['consumedInvites', 'updatedAt', 'has_withdrawn', 'adsSinceLastWithdrawal', 'balance', 'dailyStreak', 'lastDailyClaim', 'tasksCompleted', 'adsWatched'])
         )
       ) || (
-        // Action: Referral Reward (50 points from another user)
+        // Action: Referral Reward (0.3$ from another user)
         isSignedIn() && !isOwner(userId)
-        && incoming().balance == existing().balance + 50
+        && incoming().balance == existing().balance + 0.3
         && (incoming().get('referralsCount', 0) == (existing().get('referralsCount', 0) + 1))
         && (incoming().get('total_invites', 0) == (existing().get('total_invites', 0) + 1))
-        && (incoming().get('referralEarnings', 0) == (existing().get('referralEarnings', 0) + 50))
+        && (incoming().get('referralEarnings', 0) == (existing().get('referralEarnings', 0) + 0.3$))
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['balance', 'referralsCount', 'total_invites', 'referralEarnings', 'updatedAt'])
       );

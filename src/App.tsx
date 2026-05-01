@@ -54,7 +54,7 @@ interface WithdrawalHistory {
   createdAt: any;
 }
 
-const DAILY_REWARDS = [5, 10, 15, 20, 25, 30, 50]; // Points
+const DAILY_REWARDS = [0.05, 10, 15, 20, 25, 30, 0.5]; // usd
 
 // --- Error Handling ---
 enum OperationType {
@@ -221,10 +221,10 @@ export default function App() {
 
                     // Reward inviter (50 pts)
                     await updateDoc(doc(db, "users", inviterDoc.id), {
-                      balance: increment(50),
+                      balance: increment(0.3),
                       referralsCount: increment(1),
                       total_invites: increment(1),
-                      referralEarnings: increment(50),
+                      referralEarnings: increment(0.3),
                       updatedAt: serverTimestamp()
                     });
 
@@ -318,7 +318,7 @@ export default function App() {
         await updateDoc(doc(db, userDocPath), {
           adsWatched: increment(1),
           adsSinceLastWithdrawal: increment(1),
-          balance: increment(2), // 2 points per ad
+          balance: increment(0.01), // 2 points per ad
           updatedAt: serverTimestamp()
         });
         
@@ -413,7 +413,7 @@ export default function App() {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       await updateDoc(doc(db, userDocPath), {
-        balance: increment(5), // 5 points for joining channel
+        balance: increment(0.1), // 5 points for joining channel
         tasksCompleted: [...profile.tasksCompleted, 'tg_join'],
         updatedAt: serverTimestamp()
       });
@@ -421,7 +421,7 @@ export default function App() {
       try {
         (window as any).Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
       } catch {}
-      alert("Successfully verified! 5 points added to your balance.");
+      alert("Successfully verified! 0.05 usd added to your balance.");
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, userDocPath);
     } finally {
@@ -453,8 +453,8 @@ export default function App() {
     const amountNum = parseFloat(withdrawalAmount);
     
     // 1. Minimum Amount Check
-    if (isNaN(amountNum) || amountNum < 30) {
-      alert('Minimum withdrawal is 30 points.');
+    if (isNaN(amountNum) || amountNum < 5) {
+      alert('Minimum withdrawal is 5 usd.');
       return;
     }
 
