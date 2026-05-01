@@ -203,45 +203,47 @@ export default function App() {
           } else {
             // NEW USER REGISTRATION
             try {
-              let inviterIdStr = inviterIdFromParam ? String(inviterIdFromParam) : null;
-              if (inviterIdFromParam && String(inviterIdFromParam) !== String(user.id)) {
+              let appliedInviterId: string | null = null;
+              const rawStartParam = extractStartParam(tg);
+              
+              if (rawStartParam && String(rawStartParam) !== String(user.id)) {
                 try {
-                  console.log("Processing Referral for inviter:", inviterIdFromParam);
-                  const inviterRef = collection(db, "users");
-                  const q = query(inviterRef, where("telegramId", "==", parseInt(String(inviterIdFromParam))), limit(1));
-                  const querySnapshot = await getDocs(q);
-                  
-                  if (!querySnapshot.empty) {
-                    const inviterDoc = querySnapshot.docs[0];
-                    // Record their Firestore ID if found, otherwise we keep the telegram ID string
-                    // But for "invitedBy" field, storing Telegram ID might be clearer if they are looking at it.
-                    // Let's store "tg_" prefix for clarity if it's just a raw ID.
+                  const inviterTgId = parseInt(String(rawStartParam));
+                  if (!isNaN(inviterTgId)) {
+                    console.log("Referral detected. Inviter TG ID:", inviterTgId);
+                    const inviterCol = collection(db, "users");
+                    const qInviter = query(inviterCol, where("telegramId", "==", inviterTgId), limit(1));
+                    const inviterSnap = await getDocs(qInviter);
                     
-                    console.log("Found inviter doc:", inviterDoc.id);
+                    if (!inviterSnap.empty) {
+                      const inviterDoc = inviterSnap.docs[0];
+                      console.log("Inviter found! Firestore UID:", inviterDoc.id);
 
-                    // Reward inviter ($0.30)
-                    await updateDoc(doc(db, "users", inviterDoc.id), {
-                      balance: increment(0.3),
-                      referralsCount: increment(1),
-                      total_invites: increment(1),
-                      referralEarnings: increment(0.3),
-                      updatedAt: serverTimestamp()
-                    });
+                      // Update Inviter Balance and Stats
+                      await updateDoc(doc(db, "users", inviterDoc.id), {
+                        balance: increment(0.3),
+                        referralsCount: increment(1),
+                        total_invites: increment(1),
+                        referralEarnings: increment(0.3),
+                        updatedAt: serverTimestamp()
+                      });
 
-                    // Track in sub-collection for real-time join feed if needed later
-                    await setDoc(doc(db, `users/${inviterDoc.id}/referrals/${user.id}`), {
-                      telegramId: user.id,
-                      username: identity.username,
-                      joinedAt: serverTimestamp()
-                    });
-                    
-                    tg.showAlert(`Welcome! You were referred. Referral rewards applied to your friend!`);
-                    tg.HapticFeedback?.notificationOccurred('success');
-                  } else {
-                    console.warn("Inviter NOT found in database for ID:", inviterIdFromParam);
+                      // Track the referral in inviter's sub-collection
+                      await setDoc(doc(db, `users/${inviterDoc.id}/referrals/${user.id}`), {
+                        telegramId: user.id,
+                        username: identity.username,
+                        joinedAt: serverTimestamp()
+                      });
+                      
+                      appliedInviterId = String(inviterTgId);
+                      tg.showAlert(`Welcome! You were referred. Reward $0.30 added to your inviter!`);
+                      tg.HapticFeedback?.notificationOccurred('success');
+                    } else {
+                      console.warn("Inviter document not found for TG ID:", inviterTgId);
+                    }
                   }
                 } catch (refErr) {
-                  console.error("Referral Logic Failure:", refErr);
+                  console.error("Referral processing error:", refErr);
                 }
               }
               
@@ -249,7 +251,7 @@ export default function App() {
                 telegramId: user.id,
                 username: identity.username,
                 adsWatched: 0,
-                balance: inviterIdStr ? 0.05 : 0, // $0.05 welcome bonus if referred
+                balance: appliedInviterId ? 0.05 : 0, // $0.05 welcome bonus
                 dailyStreak: 0,
                 lastDailyClaim: null,
                 tasksCompleted: [],
@@ -257,15 +259,17 @@ export default function App() {
                 total_invites: 0,
                 consumedInvites: 0,
                 referralEarnings: 0,
-                invitedBy: inviterIdStr,
+                invitedBy: appliedInviterId,
                 has_withdrawn: false,
                 adsSinceLastWithdrawal: 0,
                 updatedAt: serverTimestamp()
               };
+              
               await setDoc(doc(db, userDocPath), initialProfile);
+              console.log("New user profile created successfully:", user.id);
             } catch (e) {
-              console.error("Registration Error", e);
-              setError("Failed to create profile. Try refreshing.");
+              console.error("Critical Registration Error:", e);
+              setError("Failed to create profile. Please restart the bot.");
               setLoading(false);
             }
           }
@@ -771,7 +775,7 @@ export default function App() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                       <h4 className="font-bold text-sm">Join @prime_ebisa</h4>
+                       <h4 className="font-bold text-sm">Join @ebisa_emoji</h4>
                        {profile?.tasksCompleted.includes('tg_join') && (
                          <CheckCircle2 className="w-3 h-3 text-green-400" />
                        )}
