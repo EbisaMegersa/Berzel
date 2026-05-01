@@ -1093,7 +1093,7 @@ export default function App() {
                     <Play size={10} className="rotate-90 group-open:rotate-270 transition-transform" />
                   </summary>
                   <div className="p-4 pt-0 text-[11px] text-[#A0AEC0] leading-relaxed">
-                    Our system processes withdrawals within 6-24 hours. Once processed we will review your request(we won't pay multiple refer).
+                    Our system processes withdrawals within 6-24 hours. Once processed we will review your request (We won't pay multiple for refer, definitely!).
                   </div>
                 </details>
               </div>
@@ -1196,7 +1196,7 @@ export default function App() {
                    <div>
                      <h5 className="font-bold text-sm mb-1 text-white">Verified Tracking</h5>
                      <p className="text-xs text-[#A0AEC0] leading-relaxed">
-                       Our system verifies every referral instantly, beware multiple(polygamy). You get paid 50 points the moment they open the app.
+                       Our system verifies every referral instantly, beware multiple(POLYGAMY). You get paid 50 points the moment they open the app.
                      </p>
                    </div>
                 </div>
